@@ -79,16 +79,46 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
-          if ! npx wrangler d1 info "$D1_NAME" --json > d1.json 2> d1.err; then
+          # Uwaga: `wrangler d1 info <nazwa>` szuka nazwy w wrangler.toml i bierze stamtąd
+          # database_id (u nas placeholder), dlatego id odczytujemy wprost z API po nazwie.
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database"
+          lookup() {
+            local resp
+            resp=$(curl -sS "$api?name=$D1_NAME&per_page=100" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            echo "$resp" | jq -e '.success == true' > /dev/null || { echo "::error::Cloudflare API (D1 list): $(echo "$resp" | jq -c '.errors')"; exit 1; }
+            echo "$resp" | jq -r --arg n "$D1_NAME" '.result[] | select(.name == $n) | .uuid' | head -1
+          }
+          DB_ID=$(lookup)
+          if [ -z "$DB_ID" ]; then
             echo "Baza $D1_NAME nie istnieje, tworzę."
             npx wrangler d1 create "$D1_NAME"
-            npx wrangler d1 info "$D1_NAME" --json > d1.json
+            DB_ID=$(lookup)
           fi
-          DB_ID=$(jq -r '.uuid // .id // empty' d1.json)
-          [ -n "$DB_ID" ] || { echo "::error::Brak identyfikatora bazy w odpowiedzi wranglera"; cat d1.err || true; exit 1; }
+          [ -n "$DB_ID" ] || { echo "::error::Nie udało się ustalić identyfikatora bazy $D1_NAME"; exit 1; }
           sed -i "s/__D1_DATABASE_ID__/$DB_ID/" wrangler.toml
-          rm -f d1.json d1.err
+          grep -q "database_id = \"$DB_ID\"" wrangler.toml || { echo "::error::wrangler.toml nie zawiera database_id po podmianie"; exit 1; }
           echo "D1 database_id: $DB_ID"
+
+      - name: Subdomena workers.dev (rejestracja, jeśli konto jej nie ma)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain"
+          sub=$(curl -sS "$api" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result.subdomain // empty')
+          if [ -z "$sub" ]; then
+            base=$(printf '%s' "$OWNER" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9\n' '-')
+            for cand in "$base" "$base-$(openssl rand -hex 2)"; do
+              resp=$(curl -sS -X PUT "$api" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" --data "{\"subdomain\":\"$cand\"}")
+              if echo "$resp" | jq -e '.success == true' > /dev/null; then sub="$cand"; break; fi
+              echo "Subdomena $cand niedostępna: $(echo "$resp" | jq -c '.errors')"
+            done
+            [ -n "$sub" ] || { echo "::error::Nie udało się zarejestrować subdomeny workers.dev. Ustaw ją w panelu: Workers & Pages -> Overview -> Your subdomain, i uruchom workflow ponownie."; exit 1; }
+            echo "Zarejestrowano subdomenę workers.dev: $sub"
+          fi
+          echo "WORKERS_SUBDOMAIN=$sub" >> "$GITHUB_ENV"
 
       - name: Schemat bazy
         env:
@@ -110,7 +140,7 @@ jobs:
           printf '%s' "$ADMIN_KEY" | npx wrangler secret put ADMIN_KEY
           if [ -n "$HASH_SALT" ]; then
             printf '%s' "$HASH_SALT" | npx wrangler secret put HASH_SALT
-          elif npx wrangler secret list 2>/dev/null | grep -q '"HASH_SALT"'; then
+          elif npx wrangler secret list 2>/dev/null | grep -q 'HASH_SALT'; then
             echo "HASH_SALT już ustawiony, bez zmian."
           else
             openssl rand -hex 32 | tr -d '\n' | npx wrangler secret put HASH_SALT
@@ -122,12 +152,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
-          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
-          if [ -z "$URL" ]; then
-            SUB=$(curl -sS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result.subdomain // empty')
-            [ -n "$SUB" ] && URL="https://$WORKER_NAME.$SUB.workers.dev"
-          fi
+          URL=""
+          [ -n "${WORKERS_SUBDOMAIN:-}" ] && URL="https://$WORKER_NAME.$WORKERS_SUBDOMAIN.workers.dev"
+          [ -n "$URL" ] || URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
           rm -f deploy.log
           if [ -z "$URL" ]; then
             echo "::warning::Nie udało się ustalić adresu workera. Wpisz CONFIG.ENDPOINT w docs/index.html ręcznie."
