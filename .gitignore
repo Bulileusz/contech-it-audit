@@ -1,19 +1,30 @@
-# sekrety i stan lokalny wranglera
+# Sekrety i lokalny stan wranglera
+.env
+.env.*
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+*.key
+*.pem
 .wrangler/
 worker/.wrangler/
+.claude/settings.local.json
+CLAUDE.local.md
 
-# zależności
+# Zależności
 node_modules/
 
-# eksporty danych: nigdy w repo
+# Eksporty danych: nigdy w repo
 *.csv
 
-# różne
-.env
-.env.*
+# Python / uv (na wypadek narzędzi pomocniczych)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Różne
 .DS_Store
 Thumbs.db
 *.log
