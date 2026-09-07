@@ -128,7 +128,17 @@ jobs:
       - name: Deploy workera
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler deploy 2>&1 | tee deploy.log
+        run: |
+          set -euo pipefail
+          # Na świeżym koncie pierwszy deploy bywa odrzucany tuż po uploadzie skryptu
+          # (10007 "Worker does not exist" przy włączaniu trasy workers.dev), stąd powtórzenia.
+          ok=0
+          for attempt in 1 2 3; do
+            if npx wrangler deploy 2>&1 | tee deploy.log; then ok=1; break; fi
+            echo "Deploy nieudany (próba $attempt z 3), ponawiam za 10 s."
+            sleep 10
+          done
+          [ "$ok" = "1" ] || { echo "::error::wrangler deploy nie powiódł się po 3 próbach"; exit 1; }
 
       - name: Sekrety workera (ADMIN_KEY, HASH_SALT)
         env:
@@ -146,6 +156,35 @@ jobs:
             openssl rand -hex 32 | tr -d '\n' | npx wrangler secret put HASH_SALT
             echo "HASH_SALT wygenerowany losowo i zapisany tylko w Cloudflare."
           fi
+
+      - name: Trasa workers.dev i health check API
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/subdomain"
+          # Idempotentne włączenie trasy <worker>.<subdomena>.workers.dev (to samo wywołanie robi wrangler deploy).
+          enabled=0
+          for attempt in $(seq 1 6); do
+            resp=$(curl -sS -X POST "$api" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" --data '{"enabled":true,"previews_enabled":false}')
+            if echo "$resp" | jq -e '.success == true' > /dev/null; then enabled=1; break; fi
+            echo "Włączenie trasy workers.dev nieudane (próba $attempt z 6): $(echo "$resp" | jq -c '.errors')"
+            sleep 10
+          done
+          [ "$enabled" = "1" ] || { echo "::error::Nie udało się włączyć trasy workers.dev dla $WORKER_NAME"; exit 1; }
+          URL="https://$WORKER_NAME.$WORKERS_SUBDOMAIN.workers.dev"
+          for attempt in $(seq 1 18); do
+            body=$(curl -sS -m 15 "$URL/" || true)
+            if echo "$body" | jq -e '.ok == true' > /dev/null 2>&1; then
+              echo "API odpowiada: $URL/ -> $body"
+              exit 0
+            fi
+            echo "API jeszcze nie odpowiada poprawnie (próba $attempt z 18), czekam 10 s."
+            sleep 10
+          done
+          echo "::error::API pod $URL nie odpowiada {\"ok\":true} po 3 minutach. Sprawdź w panelu Cloudflare: Workers & Pages -> $WORKER_NAME -> Settings -> Domains & Routes -> workers.dev."
+          exit 1
 
       - name: Adres API w docs/index.html
         env:
