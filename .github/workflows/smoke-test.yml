@@ -1,6 +1,6 @@
 # Testy dymne wdrożonego API. Uruchamiane ręcznie (Actions -> Smoke test API -> Run workflow).
-# Skrypt wypisuje tylko PASS/FAIL, nigdy treści odpowiedzi. Tworzy kilka rekordów
-# testowych z firmą "SMOKE-TEST ..." (usuwanie: patrz README).
+# Skrypt wypisuje tylko PASS/FAIL, nigdy treści odpowiedzi. Tworzy rekordy testowe
+# z firmą "SMOKE-TEST ...", które ostatni krok usuwa z bazy (także gdy testy padną).
 
 name: Smoke test API
 
@@ -40,3 +40,11 @@ jobs:
           [ -n "$API" ] || { echo "::error::Brak adresu API (pusty ENDPOINT w docs/index.html)"; exit 1; }
           ORIGIN="https://$(printf '%s' "$OWNER" | tr 'A-Z' 'a-z').github.io"
           API="$API" ORIGIN="$ORIGIN" bash worker/test/smoke.sh
+
+      - name: Sprzątanie rekordów testowych
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MODE: smoke
+        run: bash worker/test/db-cleanup.sh
