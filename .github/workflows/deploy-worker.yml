@@ -1,0 +1,159 @@
+# Wdrożenie workera (Cloudflare Workers + D1) bez logowania interaktywnego.
+#
+# Wymagane sekrety repozytorium (Settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_API_TOKEN   token API z uprawnieniami: Workers Scripts:Edit, D1:Edit,
+#                          Account Settings:Read (szablon "Edit Cloudflare Workers" + D1)
+#   ADMIN_KEY              długi losowy klucz do GET /export (wymyślasz sam)
+# Opcjonalne:
+#   CLOUDFLARE_ACCOUNT_ID  jeśli token widzi więcej niż jedno konto
+#   HASH_SALT              sól do hashowania IP; gdy brak, generowana losowo przy pierwszym deployu
+#
+# Po deployu workflow wpisuje adres workera do CONFIG.ENDPOINT w docs/index.html
+# i commituje tę zmianę (to jedyny powód uprawnienia contents: write).
+
+name: Deploy worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - ".github/workflows/deploy-worker.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+env:
+  D1_NAME: contech-it-audit
+  WORKER_NAME: contech-it-audit-api
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Zależności
+        run: npm ci
+
+      - name: Sprawdzenie sekretów
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: |
+          set -euo pipefail
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::Brak sekretu CLOUDFLARE_API_TOKEN"; exit 1; }
+          [ -n "$ADMIN_KEY" ] || { echo "::error::Brak sekretu ADMIN_KEY"; exit 1; }
+          [ "${#ADMIN_KEY}" -ge 24 ] || { echo "::error::ADMIN_KEY jest za krótki (minimum 24 znaki)"; exit 1; }
+
+      - name: Identyfikator konta Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            CLOUDFLARE_ACCOUNT_ID=$(curl -sS https://api.cloudflare.com/client/v4/accounts \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id // empty')
+            [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::Nie udało się ustalić konta. Dodaj sekret CLOUDFLARE_ACCOUNT_ID."; exit 1; }
+          fi
+          echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID" >> "$GITHUB_ENV"
+
+      - name: Baza D1 (utworzenie, jeśli nie istnieje) i wpisanie id do wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! npx wrangler d1 info "$D1_NAME" --json > d1.json 2> d1.err; then
+            echo "Baza $D1_NAME nie istnieje, tworzę."
+            npx wrangler d1 create "$D1_NAME"
+            npx wrangler d1 info "$D1_NAME" --json > d1.json
+          fi
+          DB_ID=$(jq -r '.uuid // .id // empty' d1.json)
+          [ -n "$DB_ID" ] || { echo "::error::Brak identyfikatora bazy w odpowiedzi wranglera"; cat d1.err || true; exit 1; }
+          sed -i "s/__D1_DATABASE_ID__/$DB_ID/" wrangler.toml
+          rm -f d1.json d1.err
+          echo "D1 database_id: $DB_ID"
+
+      - name: Schemat bazy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler d1 execute "$D1_NAME" --remote --file=./schema.sql -y
+
+      - name: Deploy workera
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy 2>&1 | tee deploy.log
+
+      - name: Sekrety workera (ADMIN_KEY, HASH_SALT)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          HASH_SALT: ${{ secrets.HASH_SALT }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$ADMIN_KEY" | npx wrangler secret put ADMIN_KEY
+          if [ -n "$HASH_SALT" ]; then
+            printf '%s' "$HASH_SALT" | npx wrangler secret put HASH_SALT
+          elif npx wrangler secret list 2>/dev/null | grep -q '"HASH_SALT"'; then
+            echo "HASH_SALT już ustawiony, bez zmian."
+          else
+            openssl rand -hex 32 | tr -d '\n' | npx wrangler secret put HASH_SALT
+            echo "HASH_SALT wygenerowany losowo i zapisany tylko w Cloudflare."
+          fi
+
+      - name: Adres API w docs/index.html
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
+          if [ -z "$URL" ]; then
+            SUB=$(curl -sS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result.subdomain // empty')
+            [ -n "$SUB" ] && URL="https://$WORKER_NAME.$SUB.workers.dev"
+          fi
+          rm -f deploy.log
+          if [ -z "$URL" ]; then
+            echo "::warning::Nie udało się ustalić adresu workera. Wpisz CONFIG.ENDPOINT w docs/index.html ręcznie."
+            exit 0
+          fi
+          echo "Adres API: $URL"
+          echo "API_URL=$URL" >> "$GITHUB_ENV"
+          cd ..
+          if grep -q "ENDPOINT: \"$URL\"," docs/index.html; then
+            echo "docs/index.html już wskazuje na ten adres."
+            exit 0
+          fi
+          sed -i -E "s#(ENDPOINT: \")[^\"]*(\",)#\1$URL\2#" docs/index.html
+          grep -q "ENDPOINT: \"$URL\"," docs/index.html || { echo "::error::Podmiana ENDPOINT nie powiodła się"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          git commit -m "Ustaw adres API w formularzu"
+          git push
+
+      - name: Podsumowanie
+        run: |
+          {
+            echo "## Worker wdrożony"
+            echo
+            echo "- Adres API: \`${API_URL:-nieznany}\`"
+            echo "- Health-check: \`curl ${API_URL:-<adres>}/\`"
+            echo "- Eksport CSV: patrz README, sekcja Eksport danych"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,20 @@
+# Cloudflare Worker: backend karty rozeznania IT
+# Sekrety (ADMIN_KEY, HASH_SALT) NIE są tu trzymane. Ustawia się je przez
+# `wrangler secret put ...` albo przez workflow .github/workflows/deploy-worker.yml.
+
+name = "contech-it-audit-api"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[vars]
+# Origin strony z formularzem (GitHub Pages). Kilka wartości oddziela się przecinkiem.
+# Podaje się sam origin (schemat + host), bez ścieżki i bez końcowego ukośnika.
+ALLOWED_ORIGIN = "https://bulileusz.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "contech-it-audit"
+# Identyfikator bazy. Wstaw wynik `wrangler d1 create contech-it-audit`
+# albo zostaw placeholder: workflow deploy-worker.yml podmienia go sam.
+database_id = "__D1_DATABASE_ID__"

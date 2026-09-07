@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:,">
+<title>Karta rozeznania IT — firma budowlana</title>
+<style>
+  :root{
+    --paper:#EFF1EE;
+    --card:#FFFFFF;
+    --ink:#17201F;
+    --muted:#5F6B64;
+    --rule:#C9CDC6;
+    --rule-soft:#E2E5E0;
+    --signal:#1D4E89;
+    --signal-soft:#EAF0F7;
+    --warn:#A8681B;
+    --warn-soft:#FBF3E4;
+    --gut:3.25rem;
+    --maxw:44rem;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    font-size:16px;
+    line-height:1.55;
+    font-feature-settings:"tnum" 1;
+  }
+  .mono{font-family:"Cascadia Mono",Consolas,"SF Mono",ui-monospace,monospace}
+
+  /* ---------- pasek postępu ---------- */
+  .bar{
+    position:sticky;top:0;z-index:20;
+    background:rgba(239,241,238,.94);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--rule);
+  }
+  .bar-in{
+    max-width:var(--maxw);margin:0 auto;padding:.6rem 1.25rem .55rem;
+    display:flex;align-items:baseline;gap:.75rem;
+  }
+  .bar-t{font-size:.82rem;font-weight:600;letter-spacing:.01em}
+  .bar-c{font-size:.82rem;color:var(--muted);margin-left:auto}
+  .track{height:3px;background:var(--rule-soft)}
+  .fill{height:3px;width:0;background:var(--signal);transition:width .25s ease}
+
+  /* ---------- układ ---------- */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem 6rem}
+
+  header.top{padding:2.75rem 0 1.75rem}
+  header.top h1{
+    font-size:1.75rem;line-height:1.2;font-weight:650;
+    letter-spacing:-.015em;margin:0 0 .85rem;max-width:26ch;
+  }
+  header.top p{margin:0 0 .7rem;color:var(--muted);max-width:60ch}
+  header.top p strong{color:var(--ink);font-weight:600}
+
+  .meta{
+    margin:1.5rem 0 0;border:1px solid var(--rule);background:var(--card);
+    padding:1rem 1.1rem;
+  }
+  .meta h2{margin:0 0 .15rem;font-size:.95rem;font-weight:650}
+  .meta p{margin:0 0 .9rem;font-size:.86rem;color:var(--muted)}
+
+  /* ---------- sekcje ---------- */
+  section{margin-top:2.75rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+  .s-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.35rem}
+  .s-let{
+    width:calc(var(--gut) - 1rem);flex:0 0 auto;
+    font-size:.8rem;color:var(--signal);font-weight:700;letter-spacing:.08em;
+  }
+  .s-head h2{margin:0;font-size:1.18rem;font-weight:650;letter-spacing:-.01em}
+  .s-note{margin:.1rem 0 0 var(--gut);font-size:.86rem;color:var(--muted);max-width:56ch}
+
+  /* ---------- pytania ---------- */
+  .q{display:flex;gap:0;margin-top:1.65rem}
+  .q-n{
+    width:var(--gut);flex:0 0 auto;padding-top:.1rem;
+    font-size:.82rem;color:var(--muted);
+  }
+  .q-b{flex:1 1 auto;min-width:0}
+  .q-t{font-size:1.02rem;font-weight:550;margin:0 0 .1rem;max-width:52ch}
+  .q-h{font-size:.85rem;color:var(--muted);margin:.15rem 0 .55rem;max-width:54ch}
+  .opts{margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem}
+
+  .opt{
+    display:flex;align-items:center;gap:.7rem;
+    background:var(--card);
+    border:1px solid var(--rule-soft);
+    border-left:3px solid transparent;
+    padding:.6rem .8rem;cursor:pointer;
+    transition:background .12s ease,border-color .12s ease;
+  }
+  .opt:hover{border-color:var(--rule)}
+  .opt input{
+    width:1.05rem;height:1.05rem;margin:0;flex:0 0 auto;
+    accent-color:var(--signal);cursor:pointer;
+  }
+  .opt span{font-size:.95rem}
+  .opt.is-on{background:var(--signal-soft);border-color:var(--rule);border-left-color:var(--signal)}
+  .opt.is-dk.is-on{background:var(--warn-soft);border-left-color:var(--warn)}
+
+  input[type=text],textarea{
+    width:100%;font:inherit;font-size:.95rem;color:var(--ink);
+    background:var(--card);border:1px solid var(--rule);
+    padding:.55rem .7rem;margin-top:.35rem;
+  }
+  textarea{min-height:5.5rem;resize:vertical;line-height:1.5}
+  input[type=text]:focus,textarea:focus{outline:2px solid var(--signal);outline-offset:-1px;border-color:var(--signal)}
+  .fld{margin-bottom:.85rem}
+  .fld label{display:block;font-size:.88rem;font-weight:550}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+
+  .q.is-todo .q-n{color:var(--warn);font-weight:700}
+  .q.is-todo .q-t::after{content:" — bez odpowiedzi";color:var(--warn);font-weight:500;font-size:.85rem}
+
+  /* ---------- zakończenie ---------- */
+  .fin{margin-top:3rem;border:1px solid var(--rule);background:var(--card);padding:1.4rem 1.3rem 1.5rem}
+  .fin h2{margin:0 0 .5rem;font-size:1.18rem;font-weight:650}
+  .fin p{margin:0 0 1rem;font-size:.92rem;color:var(--muted);max-width:56ch}
+  .steps{margin:0 0 1.25rem;padding:0;list-style:none;counter-reset:st}
+  .steps li{
+    counter-increment:st;position:relative;padding-left:1.9rem;
+    font-size:.94rem;margin-bottom:.45rem;
+  }
+  .steps li::before{
+    content:counter(st);position:absolute;left:0;top:.05rem;
+    width:1.3rem;height:1.3rem;border:1px solid var(--signal);color:var(--signal);
+    font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .acts{display:flex;flex-wrap:wrap;gap:.55rem}
+  button{
+    font:inherit;font-size:.92rem;font-weight:550;cursor:pointer;
+    padding:.62rem 1rem;border:1px solid var(--ink);background:var(--card);color:var(--ink);
+    transition:background .12s ease,color .12s ease;
+  }
+  button:hover{background:var(--ink);color:var(--card)}
+  button.pri{background:var(--signal);border-color:var(--signal);color:#fff}
+  button.pri:hover{background:#153a68;border-color:#153a68}
+  button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+  .toast{
+    position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%) translateY(1rem);
+    background:var(--ink);color:#fff;padding:.7rem 1.1rem;font-size:.9rem;
+    opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:50;
+    max-width:90vw;text-align:center;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .alert{
+    margin-top:1rem;border-left:3px solid var(--warn);background:var(--warn-soft);
+    padding:.7rem .9rem;font-size:.9rem;display:none;
+  }
+  .alert.on{display:block}
+  .alert button{margin-top:.5rem;font-size:.85rem;padding:.4rem .7rem}
+
+  footer{margin-top:2.5rem;font-size:.82rem;color:var(--muted);text-align:left}
+
+  /* ---------- dodatki: zapis w tle, wysyłka, przywracanie ---------- */
+  [hidden]{display:none!important}
+  .bar-s{
+    margin-left:auto;min-width:0;display:inline-flex;align-items:center;gap:.4rem;
+    font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .bar-s::before{content:"";flex:0 0 auto;width:.45rem;height:.45rem;border-radius:50%;background:var(--rule)}
+  .bar-s:empty::before{display:none}
+  .bar-s.ok::before{background:var(--signal)}
+  .bar-s.warn::before{background:var(--warn)}
+  .bar-s.busy::before{background:var(--muted)}
+  .bar-in .bar-c{margin-left:.9rem;white-space:nowrap}
+  .notice{
+    margin:1.5rem 0 0;border-left:3px solid var(--signal);background:var(--signal-soft);
+    padding:.8rem .95rem;font-size:.9rem;
+  }
+  .notice p{margin:0 0 .65rem}
+  .notice-a{display:flex;flex-wrap:wrap;gap:.5rem}
+  .notice button{font-size:.85rem;padding:.42rem .75rem}
+  .hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+  button:disabled{opacity:.6;cursor:progress}
+  button:disabled:hover{background:var(--signal);color:#fff}
+  .fin .rodo{margin:.9rem 0 0;font-size:.8rem;color:var(--muted);max-width:60ch}
+  .msg{margin-top:1rem;border-left:3px solid var(--warn);background:var(--warn-soft);padding:.7rem .9rem;font-size:.9rem}
+  .msg small{display:block;margin-top:.4rem;font-size:.78rem;color:var(--muted)}
+  .alt{margin-top:1.4rem;padding-top:1.1rem;border-top:1px solid var(--rule-soft)}
+  .alt-t{margin:0 0 .6rem;font-size:.86rem;color:var(--muted)}
+  .alt .acts button{font-size:.86rem;padding:.5rem .8rem}
+  .alt .acts button.pri{font-size:.92rem;padding:.62rem 1rem}
+  .alt details{margin-top:.9rem;font-size:.9rem}
+  .alt summary{cursor:pointer;color:var(--signal);font-weight:550}
+  .alt .steps{margin-top:.6rem;margin-bottom:0}
+  .fin .done-id{font-size:1rem;color:var(--ink);margin-bottom:.35rem}
+  .fin .done-id .mono{font-size:1.25rem;letter-spacing:.06em;color:var(--signal)}
+  .fin .done-full{font-size:.78rem;color:var(--muted);word-break:break-all}
+  .opt:has(input:focus-visible){outline:2px solid var(--signal);outline-offset:1px}
+  body.is-final .opt,body.is-final .opt input{cursor:default}
+  body.is-final .opt:hover{border-color:var(--rule-soft)}
+  body.is-final .opt.is-on:hover{border-color:var(--rule)}
+  body.is-final input:disabled,body.is-final textarea:disabled{
+    color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1;background:var(--card);
+  }
+  body.is-final .fin{border-color:var(--signal)}
+
+  @media (max-width:640px){
+    :root{--gut:2.4rem}
+    header.top{padding-top:1.75rem}
+    header.top h1{font-size:1.45rem}
+    .grid2{grid-template-columns:1fr}
+    .q-n{width:2.4rem;font-size:.78rem}
+    .opt{padding:.7rem .8rem}
+    .bar-in .bar-c{margin-left:auto}
+    .bar-in:has(.bar-s:not(:empty)) .bar-t{display:none}
+    .bar-in:has(.bar-s:not(:empty)) .bar-s{margin-left:0;white-space:normal;line-height:1.25}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  @media print{
+    .bar,.acts,.alert,.toast,footer{display:none!important}
+    body{background:#fff;font-size:11pt}
+    .opt{border:none;border-left:none;padding:.1rem 0;background:none}
+    .opt:not(.is-on){display:none}
+    .opt.is-on{background:none;font-weight:600}
+    .opt input{display:none}
+    .opt span::before{content:"› "}
+    section{break-inside:avoid}
+    .fin p,.steps{display:none}
+    .notice,.bar-s,.rodo,.msg,.hp,.alt,#finSend{display:none!important}
+    .fin #finDone .done-id,.fin #finDone .done-full{display:block}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="bar-t">Karta rozeznania IT</span>
+    <span class="bar-s" id="save" role="status" aria-live="polite"></span>
+    <span class="bar-c" id="cnt">0 z 0 pytań</span>
+  </div>
+  <div class="track"><div class="fill" id="fill"></div></div>
+</div>
+
+<div class="wrap">
+
+  <noscript><div class="notice"><p>Ten formularz wymaga włączonego JavaScriptu.</p></div></noscript>
+
+  <div class="notice" id="restore" hidden>
+    <p>Przywrócono odpowiedzi zapisane wcześniej w tej przeglądarce <span id="restoreWhen"></span>.
+       Możesz kontynuować od miejsca, w którym skończyłeś.</p>
+    <div class="notice-a">
+      <button type="button" id="bRestoreOk">Kontynuuję</button>
+      <button type="button" id="bReset">Wyczyść i zacznij od nowa</button>
+    </div>
+  </div>
+
+  <header class="top">
+    <h1>Zanim dobierzemy narzędzia, muszę poznać stan faktyczny</h1>
+    <p>Ta karta zbiera fakty o tym, jak firma dziś pracuje: ile osób, na czym, w jakich
+       programach. Bez tego każda rekomendacja środowiska jest zgadywaniem, a zgadywanie
+       w licencjach kosztuje realne pieniądze co miesiąc.</p>
+    <p><strong>Wypełnienie zajmuje około 12 minut.</strong> Przy każdym pytaniu jest opcja
+       „nie wiem” i to w porządku — brak wiedzy o czymś też jest informacją. Ważniejsze,
+       żeby nie zgadywać.</p>
+    <p id="introSave">Odpowiedzi zapisują się automatycznie w tej przeglądarce, możesz więc
+       przerwać i wrócić później na tym samym urządzeniu. Do mnie trafią dopiero po kliknięciu
+       „Wyślij odpowiedzi” na końcu karty.</p>
+
+    <div class="meta">
+      <h2>Metryczka</h2>
+      <p>Kto i kiedy wypełnia.</p>
+      <div class="grid2">
+        <div class="fld"><label for="m1">Nazwa firmy</label><input type="text" id="m1" data-meta="Firma" autocomplete="organization"></div>
+        <div class="fld"><label for="m2">Kto wypełnia (imię, rola)</label><input type="text" id="m2" data-meta="Wypełnia"></div>
+        <div class="fld"><label for="m3">Telefon kontaktowy</label><input type="text" id="m3" data-meta="Telefon" inputmode="tel" autocomplete="tel"></div>
+        <div class="fld"><label for="m4">Data</label><input type="text" id="m4" data-meta="Data"></div>
+      </div>
+    </div>
+  </header>
+
+  <div id="form"></div>
+
+  <div class="fin" id="fin">
+    <div id="finSend">
+      <h2 id="finH2">Wyślij odpowiedzi</h2>
+      <p id="finTxt">Odpowiedzi trafią bezpośrednio do mnie. Po wysłaniu dostaniesz numer zgłoszenia,
+         a formularz zostanie zablokowany do edycji. Do tego momentu możesz wracać i poprawiać.</p>
+      <div class="hp" aria-hidden="true">
+        <label for="website">Strona internetowa</label>
+        <input type="text" id="website" name="website" tabindex="-1" aria-hidden="true" autocomplete="off">
+      </div>
+      <div class="acts">
+        <button type="button" class="pri" id="bSend">Wyślij odpowiedzi</button>
+      </div>
+      <p class="rodo">Administratorem danych jest Maciej Bułhak, kontakt: maciek.bulhak@gmail.com.
+         Odpowiedzi służą wyłącznie przygotowaniu rekomendacji narzędzi IT dla Twojej firmy,
+         są przechowywane najdłużej 12 miesięcy od wysłania, a na Twoją prośbę usuwane wcześniej.</p>
+      <div class="msg" id="sendMsg" role="alert" hidden></div>
+    </div>
+
+    <div id="finDone" hidden>
+      <h2>Odpowiedzi zostały wysłane</h2>
+      <p class="done-id">Numer zgłoszenia: <strong class="mono" id="doneId"></strong></p>
+      <p class="done-full">Pełny identyfikator: <span class="mono" id="doneFull"></span></p>
+      <p>Dziękuję. Kopia odpowiedzi zostaje w tej przeglądarce do czasu, aż ją wyczyścisz.
+         Formularz jest teraz tylko do odczytu, ale nadal możesz zapisać go jako PDF
+         albo pobrać jako plik.</p>
+      <div class="acts">
+        <button type="button" id="bClear">Wyczyść dane z tej przeglądarki</button>
+      </div>
+    </div>
+
+    <div class="alt">
+      <p class="alt-t" id="altT">Inne sposoby przekazania odpowiedzi</p>
+      <div class="acts">
+        <button type="button" id="bCopy">Skopiuj odpowiedzi</button>
+        <button type="button" id="bMail">Otwórz wiadomość e-mail</button>
+        <button type="button" id="bFile">Pobierz jako plik</button>
+        <button type="button" id="bPrint">Zapisz jako PDF</button>
+      </div>
+      <details id="stepsWrap">
+        <summary>Jak przekazać odpowiedzi e-mailem</summary>
+        <ol class="steps">
+          <li>Skopiuj odpowiedzi przyciskiem powyżej.</li>
+          <li>Otwórz nową wiadomość e-mail i wklej treść (Ctrl+V).</li>
+          <li>Wyślij na adres <strong>maciek.bulhak@gmail.com</strong>.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="alert" id="alert">
+      <span id="alertTxt"></span>
+      <br><button type="button" id="bJump">Przejdź do pierwszego</button>
+      <button type="button" id="bForce" hidden>Wyślij mimo to</button>
+    </div>
+  </div>
+
+  <footer>Karta rozeznania IT · dokument wewnętrzny, nie zawiera danych osobowych pracowników</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =======================================================================
+   Konfiguracja zapisu i wysyłki. Wszystko, co trzeba dostosować, jest tutaj.
+   ENDPOINT: adres workera Cloudflare bez ukośnika na końcu, np.
+             "https://contech-it-audit-api.twoja-subdomena.workers.dev".
+             Pusty ENDPOINT = tryb bez serwera: zapis tylko w przeglądarce,
+             odpowiedzi przekazuje się e-mailem (schowek, plik, PDF).
+   ======================================================================= */
+var CONFIG = {
+  ENDPOINT: "",
+  DRAFT_DEBOUNCE_MS: 10000,
+  LOCAL_DEBOUNCE_MS: 400,
+  REQUEST_TIMEOUT_MS: 15000,
+  STORAGE_KEY: "contech-it-audit:v1"
+};
+
+/* =======================================================================
+   Treść formularza. Edycja: dopisuj/usuwaj obiekty — reszta działa sama.
+   typy: radio | multi | text | textarea
+   ======================================================================= */
+var DK = "Nie wiem / muszę sprawdzić";
+
+var FORM = [
+{
+  let:"A", title:"Ludzie i skala",
+  note:"Ten blok decyduje o tym, ile i jakich licencji trzeba kupić. To największa pozycja w koszcie.",
+  qs:[
+    {q:"Ile osób łącznie pracuje w firmie?", h:"Etat, B2B i stali podwykonawcy razem.",
+     t:"radio", o:["1–3","4–9","10–24","25–49","50 lub więcej"]},
+    {q:"Ile z tych osób siedzi w biurze przy komputerze przez większość dnia?",
+     t:"radio", o:["Nikt","1–2","3–5","6–10","Więcej niż 10"]},
+    {q:"Ile osób pracuje w terenie, ale musi mieć dostęp do maila i dokumentów?",
+     h:"Kierownicy budów, majstrowie, osoby jeżdżące między budowami.",
+     t:"radio", o:["Nikt","1–2","3–5","6–10","Więcej niż 10"]},
+    {q:"Ile osób pracuje w terenie i wystarczyłby im telefon z czatem, bez firmowej skrzynki?",
+     h:"Ekipy, którym potrzebne są tylko zdjęcia, zadania i kontakt z biurem.",
+     t:"radio", o:["Nikt","1–5","6–15","16 lub więcej",DK]},
+    {q:"Czy zatrudnienie zmienia się w ciągu roku?",
+     h:"Silna sezonowość zmienia sposób rozliczania licencji.",
+     t:"radio", o:["Stabilne przez cały rok","Wahania do jednej trzeciej składu","Wahania powyżej jednej trzeciej",DK]},
+    {q:"Kto decyduje o wydatkach na programy i sprzęt?",
+     t:"radio", o:["Wyłącznie właściciel","Właściciel razem z księgowością","Jest osoba odpowiedzialna za sprawy komputerowe","Inaczej"]}
+  ]
+},
+{
+  let:"B", title:"Poczta i domena",
+  note:"Najczęstsze źródło opóźnień we wdrożeniach. Warto to sprawdzić teraz, a nie w trakcie przenoszenia poczty.",
+  qs:[
+    {q:"Jakich adresów e-mail używają pracownicy?",
+     t:"radio", o:["Własna domena firmowa, np. jan@nazwafirmy.pl","Skrzynki darmowe: gmail, wp, o2, interia","Jedno i drugie, zależy od osoby","Część osób nie ma w ogóle firmowego maila"]},
+    {q:"Czy firma ma własną domenę internetową?",
+     t:"radio", o:["Tak i wiem, gdzie jest zarejestrowana","Tak, ale nie wiem u kogo","Nie",DK]},
+    {q:"Kto ma dostęp do panelu domeny i hostingu?",
+     h:"Chodzi o login i hasło do miejsca, gdzie zarejestrowana jest domena.",
+     t:"radio", o:["Właściciel","Firma, która robiła stronę internetową","Były pracownik albo znajomy","Nikt tego nie wie",DK]},
+    {q:"Czy istnieją skrzynki wspólne, np. biuro@, oferty@, kontakt@?",
+     t:"radio", o:["Tak, obsługuje je jedna osoba","Tak, kilka osób zna to samo hasło","Nie",DK]},
+    {q:"Czy logowanie do maila wymaga dodatkowego potwierdzenia z telefonu?",
+     h:"Kod SMS albo aplikacja typu Authenticator.",
+     t:"radio", o:["Tak, u wszystkich","Tak, u części osób","Nie",DK]}
+  ]
+},
+{
+  let:"C", title:"Pliki i dane",
+  note:"Interesuje mnie, gdzie fizycznie leżą dokumenty i co się stanie, jeśli któryś komputer padnie.",
+  qs:[
+    {q:"Gdzie trzymane są pliki firmowe?", h:"Można wskazać kilka odpowiedzi.",
+     t:"multi", o:["Na dyskach poszczególnych komputerów","Na serwerze albo dysku sieciowym w biurze","Na dysku zewnętrznym lub pendrivie","Google Drive","Dropbox","OneDrive na prywatnym koncie",DK]},
+    {q:"Czy pliki firmowe są kopiowane w kopii bezpieczeństwa?",
+     t:"radio", o:["Tak, automatycznie i ktoś to sprawdza","Tak, ktoś kopiuje ręcznie","Nie",DK]},
+    {q:"Jak przekazujecie duże pliki inwestorowi albo podwykonawcy?",
+     t:"multi", o:["Mailem jako załącznik","WeTransfer lub podobne","WhatsApp","Pendrive, osobiście","Link do dysku w chmurze"]},
+    {q:"Jakie największe pliki krążą w firmie?",
+     h:"Wpływa na to, ile miejsca w chmurze trzeba przewidzieć.",
+     t:"multi", o:["Tylko dokumenty i PDF-y","Rysunki CAD, pliki DWG","Modele BIM, pliki IFC lub RVT","Duże ilości zdjęć z budów",DK]},
+    {q:"Czy zdarzyło się, że ważny plik zniknął albo nie dało się go odnaleźć?",
+     t:"radio", o:["Tak, więcej niż raz","Raz","Nie",DK]}
+  ]
+},
+{
+  let:"D", title:"Sprzęt i internet",
+  note:"Chmura bez zasięgu nie działa, a stary sprzęt bywa większym kosztem niż same licencje.",
+  qs:[
+    {q:"Komputery używane do pracy to:",
+     t:"radio", o:["Wyłącznie firmowe","Wyłącznie prywatne","Mieszane",DK]},
+    {q:"Jaki system mają te komputery?",
+     h:"Widać po kliknięciu prawym na Ten komputer, potem Właściwości.",
+     t:"radio", o:["Windows 11","Windows 10","Mieszane, jedne i drugie","Część to komputery Apple",DK]},
+    {q:"Telefony służbowe:",
+     t:"radio", o:["Firma daje telefony","Pracownicy używają prywatnych","Mieszane",DK]},
+    {q:"Czy w biurze stoi serwer, dysk sieciowy albo domena Windows?",
+     t:"radio", o:["Tak, serwer albo dysk sieciowy","Tak, domena Windows","Nie, same komputery",DK]},
+    {q:"Jakość internetu w biurze:",
+     t:"radio", o:["Światłowód","Kabel albo DSL","Modem LTE lub 5G",DK]},
+    {q:"Jakość internetu na budowach:",
+     h:"Kluczowe dla tego, czy da się cokolwiek wypełniać na miejscu.",
+     t:"radio", o:["Zwykle jest dobry zasięg","Bywa słabo","Często nie ma zasięgu w ogóle",DK]}
+  ]
+},
+{
+  let:"E", title:"Programy i faktury",
+  note:"Nazwy programów są ważniejsze niż ich opis. Jeśli nie wiadomo, wystarczy zajrzeć na fakturę od dostawcy.",
+  qs:[
+    {q:"Czym kosztorysujecie?",
+     t:"multi", o:["Norma: Standard, PRO albo Expert","Rodos","Winbud","Zuzia","BIMestiMate","Tylko Excel","Nie kosztorysujemy","Inny program"]},
+    {q:"Jeśli inny program niż na liście, jaki?", t:"text", opt:true},
+    {q:"Jak planujecie i pilnujecie harmonogramu robót?",
+     t:"radio", o:["MS Project","Excel","W programie kosztorysowym","Na papierze albo w głowie","Inaczej"]},
+    {q:"Kto prowadzi księgowość?",
+     t:"radio", o:["Zewnętrzne biuro rachunkowe","Własna księgowa w firmie","Właściciel samodzielnie","Mieszane"]},
+    {q:"W jakim programie wystawiane są faktury?",
+     h:"Np. Optima, Symfonia, wFirma, Fakturownia, inFakt, ifirma, Excel.",
+     t:"text"},
+    {q:"Czy firma jest gotowa na KSeF?",
+     h:"Krajowy System e-Faktur. Obowiązek odbierania faktur w tym systemie działa od lutego 2026.",
+     t:"radio", o:["Tak, wystawiamy już faktury w KSeF","Odbieramy faktury, ale nie wystawiamy","Wiemy o tym, nic jeszcze nie zrobiliśmy","Nie wiem, co to jest"]},
+    {q:"Czy firma ma adres do e-Doręczeń?",
+     t:"radio", o:["Tak","Nie",DK]},
+    {q:"Czy prowadzicie dziennik budowy elektronicznie, w systemie GUNB?",
+     t:"radio", o:["Tak, zawsze","Czasem, zależy od inwestora","Tylko papierowo","Nie dotyczy nas",DK]},
+    {q:"Czy firma startuje w przetargach publicznych?",
+     t:"radio", o:["Regularnie","Sporadycznie","Nie"]}
+  ]
+},
+{
+  let:"F", title:"Warunki i ograniczenia",
+  note:"Bez tego bloku mogę zaproponować coś, na co firma nie ma budżetu albo czego nie da się utrzymać.",
+  qs:[
+    {q:"Jaki miesięczny koszt narzędzi komputerowych jest dla firmy akceptowalny?",
+     h:"Licencje to koszt stały, płatny co miesiąc, nie zakup jednorazowy.",
+     t:"radio", o:["Do 200 zł","200–500 zł","500–1500 zł","Powyżej 1500 zł","Nie mam na razie pojęcia"]},
+    {q:"Kto po wdrożeniu będzie zakładał konta nowym pracownikom i odbierał dostęp odchodzącym?",
+     t:"radio", o:["Właściciel","Wyznaczony pracownik","Firma zewnętrzna","Jeszcze nie wiadomo"]},
+    {q:"Czy są zobowiązania, które utrudniają zmianę?",
+     t:"multi", o:["Kupione licencje wieczyste programów","Umowa na hosting lub pocztę na czas określony","Sprzęt w leasingu","Brak takich zobowiązań",DK]},
+    {q:"Czy jest termin, do którego coś musi zadziałać?",
+     h:"Przetarg, kontrola, koniec umowy z dostawcą, obowiązek KSeF.",
+     t:"text", opt:true},
+    {q:"Czy była już próba wprowadzenia jakiegoś programu i nie wyszła?",
+     t:"radio", o:["Tak","Nie",DK]}
+  ]
+},
+{
+  let:"G", title:"Co realnie boli",
+  note:"Najważniejszy blok w całej karcie. Odpowiedzi własnymi słowami, bez wygładzania. Krótko wystarczy.",
+  qs:[
+    {q:"Które trzy czynności biurowe zajmują najwięcej czasu?",
+     h:"Nie „co jest trudne”, ale „co pochłania godziny”.", t:"textarea"},
+    {q:"Co robicie co tydzień albo co miesiąc dokładnie tak samo?",
+     h:"Powtarzalność to pierwszy kandydat do automatyzacji.", t:"textarea"},
+    {q:"Opisz ostatnią sytuację, w której coś poszło źle, bo informacja nie dotarła albo zgubił się dokument.",
+     t:"textarea"},
+    {q:"Jak liczone są godziny pracy ludzi i podwykonawców?",
+     h:"Kartka, Excel, telefon, aplikacja.", t:"textarea"},
+    {q:"Gdzie lądują zdjęcia z budów i czy da się je odnaleźć po pół roku?",
+     t:"textarea"},
+    {q:"Kto w firmie najbardziej się ucieszy ze zmian, a kto będzie się opierał?",
+     t:"textarea", opt:true},
+    {q:"Cokolwiek innego, co powinienem wiedzieć.",
+     t:"textarea", opt:true}
+  ]
+}
+];
+
+/* ======================= renderowanie ======================= */
+var root = document.getElementById("form");
+var n = 0, total = 0, reg = [];
+
+FORM.forEach(function(sec){
+  var s = document.createElement("section");
+  var h = '<div class="s-head"><span class="s-let mono">'+sec.let+'</span><h2>'+sec.title+'</h2></div>';
+  if(sec.note) h += '<p class="s-note">'+sec.note+'</p>';
+  s.innerHTML = h;
+
+  sec.qs.forEach(function(q){
+    n++;
+    var id = "q"+n;
+    var d = document.createElement("div");
+    d.className = "q";
+    d.id = id;
+
+    var body = '<p class="q-t">'+q.q+'</p>';
+    if(q.h) body += '<p class="q-h">'+q.h+'</p>';
+
+    if(q.t === "radio" || q.t === "multi"){
+      body += '<div class="opts">';
+      q.o.forEach(function(o,i){
+        var type = q.t === "radio" ? "radio" : "checkbox";
+        var dk = o === DK ? " is-dk" : "";
+        body += '<label class="opt'+dk+'">'+
+                '<input type="'+type+'" name="'+id+'" value="'+o.replace(/"/g,"&quot;")+'">'+
+                '<span>'+o+'</span></label>';
+      });
+      body += '</div>';
+    } else if(q.t === "text"){
+      body += '<input type="text" name="'+id+'">';
+    } else {
+      body += '<textarea name="'+id+'"></textarea>';
+    }
+
+    d.innerHTML = '<div class="q-n mono">'+n+'</div><div class="q-b">'+body+'</div>';
+    s.appendChild(d);
+
+    reg.push({id:id, num:n, sec:sec.let+". "+sec.title, q:q.q, t:q.t, opt:!!q.opt});
+    if(!q.opt) total++;
+  });
+
+  root.appendChild(s);
+});
+
+/* ======================= stan i postęp ======================= */
+var fill = document.getElementById("fill");
+var cnt  = document.getElementById("cnt");
+
+function val(item){
+  var el = document.getElementById(item.id);
+  if(item.t === "radio"){
+    var r = el.querySelector("input:checked");
+    return r ? r.value : "";
+  }
+  if(item.t === "multi"){
+    return Array.prototype.map.call(el.querySelectorAll("input:checked"), function(i){return i.value;}).join("; ");
+  }
+  var f = el.querySelector("input,textarea");
+  return f ? f.value.trim() : "";
+}
+
+function refresh(){
+  var done = 0;
+  reg.forEach(function(item){
+    if(item.opt) return;
+    if(val(item)) done++;
+  });
+  fill.style.width = (total ? done/total*100 : 0) + "%";
+  cnt.textContent = done + " z " + total + " pytań";
+}
+
+document.addEventListener("change", function(e){
+  var lab = e.target.closest(".opt");
+  if(lab){
+    if(e.target.type === "radio"){
+      var box = e.target.closest(".opts");
+      Array.prototype.forEach.call(box.querySelectorAll(".opt"), function(l){l.classList.remove("is-on");});
+    }
+    lab.classList.toggle("is-on", e.target.checked);
+  }
+  var q = e.target.closest(".q");
+  if(q) q.classList.remove("is-todo");
+  refresh();
+});
+document.addEventListener("input", function(e){
+  if(e.target.matches("input[type=text],textarea")){
+    var q = e.target.closest(".q");
+    if(q) q.classList.remove("is-todo");
+    refresh();
+  }
+});
+
+/* ======================= eksport ======================= */
+function meta(){
+  var out = [];
+  Array.prototype.forEach.call(document.querySelectorAll("[data-meta]"), function(f){
+    out.push(f.dataset.meta + ": " + (f.value.trim() || "—"));
+  });
+  return out;
+}
+
+function firma(){
+  var v = document.getElementById("m1").value.trim();
+  return v ? v.replace(/[^\p{L}\p{N}]+/gu,"_").replace(/^_|_$/g,"") : "firma";
+}
+
+function build(){
+  var L = [];
+  L.push("KARTA ROZEZNANIA IT");
+  L.push("=".repeat(50));
+  meta().forEach(function(m){L.push(m);});
+  if(app.id) L.push("Numer zgłoszenia: " + shortId(app.id) + " (" + app.id + ")");
+  L.push("");
+
+  var cur = "";
+  reg.forEach(function(item){
+    if(item.sec !== cur){
+      cur = item.sec;
+      L.push("");
+      L.push("--- " + cur.toUpperCase() + " ---");
+      L.push("");
+    }
+    var v = val(item);
+    L.push(item.num + ". " + item.q);
+    if(!v){
+      L.push("   [ bez odpowiedzi ]");
+    } else if(item.t === "textarea"){
+      v.split("\n").forEach(function(line){L.push("   " + line);});
+    } else {
+      L.push("   > " + v);
+    }
+    L.push("");
+  });
+
+  var done = reg.filter(function(i){return !i.opt && val(i);}).length;
+  L.push("=".repeat(50));
+  L.push("Uzupełniono " + done + " z " + total + " pytań obowiązkowych.");
+  return L.join("\n");
+}
+
+function toast(msg){
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){t.classList.remove("on");}, 3400);
+}
+
+function checkGaps(){
+  var missing = reg.filter(function(i){return !i.opt && !val(i);});
+  var a = document.getElementById("alert");
+  document.querySelectorAll(".q.is-todo").forEach(function(q){q.classList.remove("is-todo");});
+  if(!missing.length){ a.classList.remove("on"); return null; }
+  missing.forEach(function(i){document.getElementById(i.id).classList.add("is-todo");});
+  document.getElementById("alertTxt").textContent =
+    "Bez odpowiedzi zostało " + missing.length + " pytań. Odpowiedzi można odesłać i tak, ale każde uzupełnione pytanie to mniej zgadywania z mojej strony.";
+  a.classList.add("on");
+  return missing[0].id;
+}
+
+function copyText(txt){
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(txt);
+  }
+  return new Promise(function(res,rej){
+    var ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try{ ok = document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+    ok ? res() : rej();
+  });
+}
+
+document.getElementById("bCopy").addEventListener("click", function(){
+  checkGaps();
+  copyText(build()).then(function(){
+    toast("Odpowiedzi skopiowane. Wklej je w treść wiadomości e-mail.");
+  }).catch(function(){
+    toast("Kopiowanie nie zadziałało w tej przeglądarce. Użyj przycisku Pobierz jako plik.");
+  });
+});
+
+document.getElementById("bFile").addEventListener("click", function(){
+  checkGaps();
+  var blob = new Blob([build()], {type:"text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "rozeznanie_" + firma() + ".txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);}, 1000);
+  toast("Plik zapisany. Dołącz go jako załącznik do wiadomości.");
+});
+
+document.getElementById("bMail").addEventListener("click", function(){
+  checkGaps();
+  copyText(build()).catch(function(){});
+  var subj = "Karta rozeznania IT — " + (document.getElementById("m1").value.trim() || "firma budowlana");
+  var body = "Odpowiedzi są w schowku. Wklej je tutaj skrótem Ctrl+V (na telefonie: przytrzymaj i wybierz Wklej), a potem wyślij.\n\n";
+  window.location.href = "mailto:maciek.bulhak@gmail.com?subject=" +
+    encodeURIComponent(subj) + "&body=" + encodeURIComponent(body);
+  toast("Odpowiedzi w schowku. Wklej je w otwartej wiadomości.");
+});
+
+document.getElementById("bPrint").addEventListener("click", function(){
+  checkGaps();
+  window.print();
+});
+
+document.getElementById("bJump").addEventListener("click", function(){
+  var first = document.querySelector(".q.is-todo");
+  if(first) first.scrollIntoView({behavior:"smooth", block:"center"});
+});
+
+/* data domyślna */
+(function(){
+  var d = new Date();
+  var p = function(x){return String(x).padStart(2,"0");};
+  document.getElementById("m4").value = d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
+})();
+
+refresh();
+
+/* =======================================================================
+   Zapis lokalny (localStorage), zapis zdalny w tle (POST /draft),
+   wysyłka (POST /submit), przywracanie stanu, tryb tylko do odczytu.
+   ======================================================================= */
+var API = String(CONFIG.ENDPOINT || "").replace(/\/+$/, "");
+var CAN_REMOTE = !!API && location.protocol !== "file:";
+var META_MAP = {m1:"company", m2:"filler", m3:"phone", m4:"date"};
+
+var hp      = document.getElementById("website");
+var saveEl  = document.getElementById("save");
+var bSend   = document.getElementById("bSend");
+var sendMsg = document.getElementById("sendMsg");
+
+var app = {
+  id: null,
+  status: "draft",          /* 'draft' | 'final' */
+  submittedAt: null,
+  lastSent: "",             /* odcisk ostatniego szkicu przyjętego przez serwer */
+  serverFinal: false,       /* serwer zgłosił, że rekord jest już 'final' */
+  sending: false,
+  localTimer: null,
+  remoteTimer: null,
+  retryTimer: null,
+  retryDelay: 30000,
+  cleared: false            /* użytkownik wyczyścił dane: blokada dalszych zapisów */
+};
+
+/* ---------- localStorage ---------- */
+function storage(){ try { return window.localStorage; } catch(e){ return null; } }
+function loadState(){
+  var s = storage(); if(!s) return null;
+  try { var raw = s.getItem(CONFIG.STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
+}
+function saveState(){
+  if(app.cleared) return false;   /* po "Wyczyść" nic już nie zapisujemy (pagehide przy reload) */
+  var s = storage(); if(!s) return false;
+  try { s.setItem(CONFIG.STORAGE_KEY, JSON.stringify(snapshot())); return true; } catch(e){ return false; }
+}
+function clearState(){ var s = storage(); if(!s) return; try { s.removeItem(CONFIG.STORAGE_KEY); } catch(e){} }
+
+function uuid(){
+  if(window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  var b = new Uint8Array(16);
+  if(window.crypto && crypto.getRandomValues) crypto.getRandomValues(b);
+  else for(var i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  var h = Array.prototype.map.call(b, function(x){return x.toString(16).padStart(2,"0");}).join("");
+  return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
+}
+function shortId(id){ return String(id).slice(0,8).toUpperCase(); }
+
+/* ---------- odczyt i zapis stanu formularza ---------- */
+function metaObj(){
+  var o = {};
+  Object.keys(META_MAP).forEach(function(id){
+    var el = document.getElementById(id);
+    o[META_MAP[id]] = el ? el.value.trim() : "";
+  });
+  return o;
+}
+function rawVal(item){
+  if(item.t === "multi"){
+    var el = document.getElementById(item.id);
+    return Array.prototype.map.call(el.querySelectorAll("input:checked"), function(i){return i.value;});
+  }
+  return val(item);
+}
+function answersObj(){
+  var o = {};
+  reg.forEach(function(item){
+    var v = rawVal(item);
+    if(Array.isArray(v) ? v.length : v) o[item.id] = v;
+  });
+  return o;
+}
+function countAnswered(){
+  var req = 0, all = 0;
+  reg.forEach(function(i){ if(val(i)){ all++; if(!i.opt) req++; } });
+  return {req:req, all:all};
+}
+function snapshot(){
+  return {
+    v: 1,
+    id: app.id,
+    status: app.status,
+    submittedAt: app.submittedAt,
+    updatedAt: new Date().toISOString(),
+    meta: metaObj(),
+    answers: answersObj()
+  };
+}
+function hasContent(s){
+  if(!s) return false;
+  if(s.answers && Object.keys(s.answers).length) return true;
+  var m = s.meta || {};
+  return !!(m.company || m.filler || m.phone);
+}
+function applyState(s){
+  Object.keys(META_MAP).forEach(function(id){
+    var el = document.getElementById(id), v = s.meta && s.meta[META_MAP[id]];
+    if(el && typeof v === "string" && v !== "") el.value = v;
+  });
+  var a = s.answers || {};
+  reg.forEach(function(item){
+    var v = a[item.id];
+    if(v === undefined || v === null) return;
+    var el = document.getElementById(item.id);
+    if(item.t === "radio" || item.t === "multi"){
+      var vals = Array.isArray(v) ? v : [v];
+      Array.prototype.forEach.call(el.querySelectorAll("input"), function(inp){
+        var on = vals.indexOf(inp.value) !== -1;
+        inp.checked = on;
+        inp.closest(".opt").classList.toggle("is-on", on);
+      });
+    } else {
+      var f = el.querySelector("input,textarea");
+      if(f) f.value = String(v);
+    }
+  });
+  refresh();
+}
+function fmtWhen(iso){
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  try { return d.toLocaleString("pl-PL", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }
+  catch(e){ return d.toISOString().slice(0,16).replace("T"," "); }
+}
+function hhmm(d){
+  var p = function(x){return String(x).padStart(2,"0");};
+  return p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
+/* ---------- wskaźnik stanu zapisu w pasku ---------- */
+function setSave(kind, msg){
+  saveEl.textContent = msg || "";
+  saveEl.className = "bar-s" + (kind ? " " + kind : "");
+}
+
+/* ---------- payload dla serwera ---------- */
+function serverBody(){
+  var m = metaObj(), c = countAnswered();
+  return {
+    id: app.id,
+    website: hp ? hp.value : "",
+    company: m.company,
+    filler: m.filler,
+    phone: m.phone,
+    answered: c.req,
+    payload: {
+      v: 1,
+      meta: m,
+      answered: c.req,
+      answered_all: c.all,
+      total_required: total,
+      answers: reg.map(function(item){
+        return {id:item.id, n:item.num, sec:item.sec, q:item.q, t:item.t, opt:item.opt, v:rawVal(item)};
+      }),
+      client: {time: new Date().toISOString(), lang: navigator.language || ""}
+    }
+  };
+}
+function fingerprint(body){ return JSON.stringify({m: body.payload.meta, a: body.payload.answers}); }
+
+function postJson(path, json, keepalive){
+  var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, CONFIG.REQUEST_TIMEOUT_MS) : null;
+  var opts = {method:"POST", headers:{"Content-Type":"application/json"}, body:json,
+              mode:"cors", credentials:"omit", cache:"no-store"};
+  if(keepalive) opts.keepalive = true;
+  if(ctrl) opts.signal = ctrl.signal;
+  return fetch(API + path, opts).then(function(r){
+    return r.text().then(function(txt){
+      var data = null;
+      try { data = JSON.parse(txt); } catch(e){}
+      if(!r.ok || !data || data.ok !== true){
+        var err = new Error("http " + r.status);
+        err.status = r.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    });
+  }).finally(function(){ if(timer) clearTimeout(timer); });
+}
+
+/* ---------- autosave ---------- */
+function scheduleLocal(){
+  clearTimeout(app.localTimer);
+  app.localTimer = setTimeout(function(){
+    if(saveState() && app.status !== "final" && !saveEl.classList.contains("busy")){
+      setSave("local", "Zapisano lokalnie");
+    }
+  }, CONFIG.LOCAL_DEBOUNCE_MS);
+}
+function scheduleRemote(){
+  if(!CAN_REMOTE || app.status === "final" || app.serverFinal) return;
+  clearTimeout(app.remoteTimer);
+  app.remoteTimer = setTimeout(function(){ sendDraft(false); }, CONFIG.DRAFT_DEBOUNCE_MS);
+}
+function sendDraft(leaving){
+  if(!CAN_REMOTE || app.status === "final" || app.serverFinal || app.sending) return;
+  clearTimeout(app.remoteTimer);
+  var body = serverBody(), fp = fingerprint(body);
+  if(fp === app.lastSent) return;
+  var json = JSON.stringify(body);
+
+  if(leaving && navigator.sendBeacon){
+    /* text/plain: typ bezpieczny dla CORS, więc beacon nie potrzebuje preflightu */
+    var queued = false;
+    try { queued = navigator.sendBeacon(API + "/draft", new Blob([json], {type:"text/plain;charset=UTF-8"})); } catch(e){}
+    if(queued) return;
+  }
+
+  setSave("busy", "Zapisuję…");
+  postJson("/draft", json, !!leaving).then(function(res){
+    app.lastSent = fp;
+    app.retryDelay = 30000;
+    if(res.status === "final"){
+      app.serverFinal = true;
+      setSave("warn", "Odpowiedzi już wysłane. Zmiany zapiszą się po ponownym kliknięciu Wyślij");
+    } else {
+      setSave("ok", "Zapisano " + hhmm(new Date()));
+    }
+  }).catch(function(){
+    setSave("warn", "Brak połączenia, odpowiedzi zapisane lokalnie");
+    clearTimeout(app.retryTimer);
+    app.retryTimer = setTimeout(function(){ sendDraft(false); }, app.retryDelay);
+    app.retryDelay = Math.min(app.retryDelay * 2, 300000);
+  });
+}
+function onEdit(e){
+  if(e.target === hp || app.status === "final") return;
+  if(!e.target.matches("input,textarea")) return;
+  scheduleLocal();
+  scheduleRemote();
+}
+document.addEventListener("change", onEdit);
+document.addEventListener("input", onEdit);
+
+function flushOnHide(){
+  clearTimeout(app.localTimer);
+  saveState();
+  if(app.status !== "final") sendDraft(true);
+}
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden") flushOnHide();
+});
+window.addEventListener("pagehide", flushOnHide);
+window.addEventListener("online", function(){ if(CAN_REMOTE) sendDraft(false); });
+
+/* ---------- wysyłka ---------- */
+function showMsg(html){ sendMsg.innerHTML = html; sendMsg.hidden = false; }
+function hideMsg(){ sendMsg.hidden = true; sendMsg.innerHTML = ""; }
+function setSendState(state){
+  if(state === "sending"){
+    bSend.disabled = true;
+    bSend.textContent = "Wysyłam…";
+    bSend.setAttribute("aria-busy", "true");
+  } else {
+    bSend.disabled = false;
+    bSend.textContent = "Wyślij odpowiedzi";
+    bSend.removeAttribute("aria-busy");
+  }
+}
+function errorText(err){
+  var st = err && err.status, head, tech;
+  if(st === 429){
+    head = "Zbyt wiele prób w krótkim czasie. Odczekaj kilka minut i kliknij Wyślij ponownie.";
+  } else if(st === 403){
+    head = "Ta kopia formularza jest otwarta z innego adresu niż oficjalny, więc wysyłka online jest zablokowana.";
+  } else if(st === 413){
+    head = "Odpowiedzi są zbyt obszerne, żeby wysłać je tą drogą. Skróć najdłuższe opisy albo skorzystaj z drogi awaryjnej.";
+  } else if(st){
+    head = "Serwer odrzucił wysyłkę.";
+  } else {
+    head = "Nie udało się połączyć z serwerem. Sprawdź internet i spróbuj ponownie za chwilę.";
+  }
+  tech = st ? "HTTP " + st + (err.data && err.data.error ? ", " + err.data.error : "")
+            : "brak odpowiedzi serwera (błąd sieci lub limit czasu)";
+  return "<strong>Wysyłka nie powiodła się.</strong> " + head +
+         " Odpowiedzi są bezpieczne, zostały zapisane w tej przeglądarce." +
+         " Droga awaryjna: użyj przycisku „Skopiuj odpowiedzi” albo „Pobierz jako plik” poniżej" +
+         " i wyślij je na adres maciek.bulhak@gmail.com." +
+         "<small>Szczegóły techniczne: " + tech + "</small>";
+}
+function submitAnswers(){
+  if(app.sending || app.status === "final" || !CAN_REMOTE) return;
+  app.sending = true;
+  clearTimeout(app.remoteTimer);
+  clearTimeout(app.retryTimer);
+  hideMsg();
+  setSendState("sending");
+  saveState();
+  var body = serverBody();
+  postJson("/submit", JSON.stringify(body), false).then(function(){
+    app.sending = false;
+    app.lastSent = fingerprint(body);
+    enterFinal(new Date().toISOString());
+    toast("Odpowiedzi wysłane. Dziękuję.");
+  }).catch(function(err){
+    app.sending = false;
+    setSendState("idle");
+    showMsg(errorText(err));
+    document.getElementById("stepsWrap").open = true;
+    setSave("warn", "Brak połączenia, odpowiedzi zapisane lokalnie");
+    sendMsg.scrollIntoView({behavior:"smooth", block:"nearest"});
+  });
+}
+function lockInputs(){
+  Array.prototype.forEach.call(document.querySelectorAll("#form input, #form textarea, .meta input"), function(el){
+    el.disabled = true;
+  });
+}
+function enterFinal(when){
+  app.status = "final";
+  app.submittedAt = when || app.submittedAt || new Date().toISOString();
+  clearTimeout(app.localTimer); clearTimeout(app.remoteTimer); clearTimeout(app.retryTimer);
+  saveState();
+  document.body.classList.add("is-final");
+  lockInputs();
+  document.getElementById("finSend").hidden = true;
+  document.getElementById("finDone").hidden = false;
+  document.getElementById("doneId").textContent = shortId(app.id);
+  document.getElementById("doneFull").textContent = app.id;
+  document.getElementById("altT").textContent = "Kopia dla Ciebie";
+  document.getElementById("restore").hidden = true;
+  document.getElementById("alert").classList.remove("on");
+  document.querySelectorAll(".q.is-todo").forEach(function(q){q.classList.remove("is-todo");});
+  setSave("ok", "Wysłano " + fmtWhen(app.submittedAt));
+}
+function resetAll(){
+  app.cleared = true;
+  clearTimeout(app.localTimer); clearTimeout(app.remoteTimer); clearTimeout(app.retryTimer);
+  clearState();
+  location.reload();
+}
+
+bSend.addEventListener("click", function(){
+  var force = document.getElementById("bForce");
+  if(checkGaps()){
+    force.hidden = false;
+    document.getElementById("alert").scrollIntoView({behavior:"smooth", block:"nearest"});
+    return;
+  }
+  force.hidden = true;
+  submitAnswers();
+});
+document.getElementById("bForce").addEventListener("click", function(){
+  this.hidden = true;
+  submitAnswers();
+});
+["bCopy","bMail","bFile","bPrint"].forEach(function(id){
+  document.getElementById(id).addEventListener("click", function(){
+    document.getElementById("bForce").hidden = true;
+  });
+});
+document.getElementById("bRestoreOk").addEventListener("click", function(){
+  document.getElementById("restore").hidden = true;
+});
+document.getElementById("bReset").addEventListener("click", function(){
+  if(confirm("Usunąć zapisane odpowiedzi z tej przeglądarki i zacząć od nowa?")) resetAll();
+});
+document.getElementById("bClear").addEventListener("click", function(){
+  if(confirm("Odpowiedzi zostały już wysłane. Usunąć ich kopię z tej przeglądarki?")) resetAll();
+});
+
+/* ---------- tryb bez serwera (brak ENDPOINT albo plik lokalny) ---------- */
+if(!CAN_REMOTE){
+  bSend.hidden = true;
+  document.getElementById("bCopy").classList.add("pri");
+  document.getElementById("stepsWrap").open = true;
+  document.getElementById("finH2").textContent = "Zapisz i odeślij";
+  document.getElementById("finTxt").textContent =
+    "Ta kopia formularza działa bez połączenia z serwerem. Skopiuj odpowiedzi albo pobierz je jako plik i wyślij e-mailem.";
+  document.getElementById("altT").textContent = "Przekazanie odpowiedzi";
+  document.getElementById("introSave").textContent =
+    "Odpowiedzi zapisują się automatycznie w tej przeglądarce, możesz więc przerwać i wrócić później na tym samym urządzeniu. " +
+    "Na końcu karty skopiuj je albo pobierz jako plik i wyślij e-mailem.";
+}
+
+/* ---------- start: identyfikator i przywrócenie stanu ---------- */
+(function init(){
+  var saved = loadState();
+  if(saved && typeof saved.id === "string" && /^[0-9a-f-]{36}$/i.test(saved.id)){
+    app.id = saved.id.toLowerCase();
+    if(hasContent(saved)){
+      applyState(saved);
+      if(saved.status === "final"){
+        enterFinal(saved.submittedAt);
+      } else {
+        var when = saved.updatedAt ? fmtWhen(saved.updatedAt) : "";
+        document.getElementById("restoreWhen").textContent = when ? "(ostatnia zmiana: " + when + ")" : "";
+        document.getElementById("restore").hidden = false;
+        setSave("local", "Zapisano lokalnie");
+      }
+    }
+  } else {
+    app.id = uuid();
+    saveState();
+  }
+})();
+</script>
+</body>
+</html>

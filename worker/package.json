@@ -1,0 +1,20 @@
+{
+  "name": "contech-it-audit-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cloudflare Worker + D1: backend karty rozeznania IT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create contech-it-audit",
+    "db:migrate": "wrangler d1 execute contech-it-audit --remote --file=./schema.sql -y",
+    "db:migrate:local": "wrangler d1 execute contech-it-audit --local --file=./schema.sql -y",
+    "secrets": "wrangler secret put ADMIN_KEY && wrangler secret put HASH_SALT",
+    "tail": "wrangler tail --format pretty",
+    "test": "bash ./test/smoke.sh"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
+}

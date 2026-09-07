@@ -1,0 +1,42 @@
+# Testy dymne wdrożonego API. Uruchamiane ręcznie (Actions -> Smoke test API -> Run workflow).
+# Skrypt wypisuje tylko PASS/FAIL, nigdy treści odpowiedzi. Tworzy kilka rekordów
+# testowych z firmą "SMOKE-TEST ..." (usuwanie: patrz README).
+
+name: Smoke test API
+
+on:
+  workflow_dispatch:
+    inputs:
+      api:
+        description: "Adres workera (https://...workers.dev). Puste = odczyt z docs/index.html"
+        required: false
+        default: ""
+      rate_test:
+        description: "Sprawdzić też rate limit (zużywa limit 60/10 min dla IP runnera)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Testy
+        env:
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          API_INPUT: ${{ inputs.api }}
+          RATE_TEST: ${{ inputs.rate_test && '1' || '0' }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          API="$API_INPUT"
+          if [ -z "$API" ]; then
+            API=$(grep -oE 'ENDPOINT: "[^"]*"' docs/index.html | head -1 | sed -E 's/ENDPOINT: "([^"]*)"/\1/')
+          fi
+          [ -n "$API" ] || { echo "::error::Brak adresu API (pusty ENDPOINT w docs/index.html)"; exit 1; }
+          ORIGIN="https://$(printf '%s' "$OWNER" | tr 'A-Z' 'a-z').github.io"
+          API="$API" ORIGIN="$ORIGIN" bash worker/test/smoke.sh

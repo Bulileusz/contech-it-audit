@@ -1,0 +1,7 @@
+# Skopiuj do .dev.vars (plik jest w .gitignore) i wpisz własne wartości.
+# Te zmienne działają tylko dla `wrangler dev`. Na produkcji sekrety ustawia
+# `wrangler secret put ADMIN_KEY` / `wrangler secret put HASH_SALT`.
+ADMIN_KEY=wpisz-dlugi-losowy-klucz
+HASH_SALT=wpisz-inny-dlugi-losowy-ciag
+# Lokalnie można dopuścić dodatkowy origin (np. serwer statyczny z katalogiem docs/).
+ALLOWED_ORIGIN=http://localhost:8788,https://bulileusz.github.io
