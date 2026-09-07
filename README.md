@@ -22,10 +22,13 @@ plus lekki backend na Cloudflare Workers + D1, który zbiera odpowiedzi do bazy.
 │   ├── wrangler.toml             # konfiguracja workera i bindingu D1 (bez sekretów)
 │   ├── package.json              # skrypty npm (dev, deploy, migracje, testy)
 │   ├── .dev.vars.example         # wzór lokalnych zmiennych (kopiuj do .dev.vars, ignorowany przez git)
-│   └── test/smoke.sh             # testy dymne API (curl)
+│   └── test/
+│       ├── smoke.sh              # testy dymne API (curl)
+│       └── db-cleanup.sh         # usuwanie rekordów testowych lub zgłoszenia po UUID (REST API D1)
 ├── .github/workflows/
 │   ├── deploy-worker.yml         # deploy workera bez logowania interaktywnego (token API)
-│   └── smoke-test.yml            # ręczne uruchomienie testów dymnych na wdrożonym API
+│   ├── smoke-test.yml            # ręczne testy dymne na wdrożonym API, sprzątają po sobie
+│   └── db-cleanup.yml            # ręczne czyszczenie bazy: rekordy testowe albo zgłoszenie po UUID
 ├── .gitignore                    # .dev.vars, .wrangler, node_modules, *.csv
 └── README.md
 ```
@@ -185,11 +188,12 @@ curl -i -X POST "$API/draft" -H "Origin: $ORIGIN" -H "Content-Type: application/
   -d "${BODY/\"website\":\"\"/\"website\":\"http://spam\"}"
 ```
 
-Rekordy testowe mają firmę `SMOKE-TEST ...`; usuwanie:
+Rekordy testowe mają firmę `SMOKE-TEST ...`. Workflow „Smoke test API” usuwa je sam na
+końcu przebiegu. Po testach uruchamianych ręcznie usuwa je workflow „Czyszczenie bazy”
+(Actions → Run workflow → tryb `smoke`) albo lokalnie:
 
 ```bash
-cd worker && npx wrangler d1 execute contech-it-audit --remote -y \
-  --command "DELETE FROM submissions WHERE company LIKE 'SMOKE-TEST%'"
+CLOUDFLARE_API_TOKEN=<token> MODE=smoke bash worker/test/db-cleanup.sh
 ```
 
 ### Przeglądarka (lista kontrolna)
@@ -213,5 +217,6 @@ Sprawdzone w Chromium (Playwright, 55 asercji) i do powtórzenia ręcznie po wdr
 - Worker nie loguje payloadu ani adresów IP. `wrangler tail` pokazuje metadane żądań na żywo,
   ale nic nie zapisuje.
 - Klauzula informacyjna dla wypełniającego jest przy przycisku wysyłki w formularzu.
-- Usunięcie zgłoszenia na prośbę klienta:
-  `npx wrangler d1 execute contech-it-audit --remote -y --command "DELETE FROM submissions WHERE id='<uuid>'"`.
+- Usunięcie zgłoszenia na prośbę klienta: Actions → „Czyszczenie bazy” → tryb `id` →
+  wpisz UUID zgłoszenia (numer zgłoszenia z formularza to jego pierwsze 8 znaków, pełny UUID
+  jest w eksporcie). Lokalnie: `CLOUDFLARE_API_TOKEN=<token> MODE=id TARGET_ID=<uuid> bash worker/test/db-cleanup.sh`.

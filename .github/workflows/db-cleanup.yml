@@ -1,0 +1,35 @@
+# Ręczne czyszczenie produkcyjnej bazy D1 (Actions -> Czyszczenie bazy -> Run workflow).
+#   smoke: usuwa rekordy testowe z firmą "SMOKE-TEST ..." (po ręcznych testach dymnych)
+#   id:    usuwa jedno zgłoszenie po UUID (np. prośba klienta o usunięcie danych)
+# Używa sekretu CLOUDFLARE_API_TOKEN (ten sam co deploy). Nie wypisuje treści rekordów.
+
+name: Czyszczenie bazy
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Co usunąć"
+        type: choice
+        options: [smoke, id]
+        default: smoke
+      id:
+        description: "UUID zgłoszenia (tylko dla trybu id)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Usuwanie
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MODE: ${{ inputs.mode }}
+          TARGET_ID: ${{ inputs.id }}
+        run: bash worker/test/db-cleanup.sh
